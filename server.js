@@ -2,13 +2,13 @@ const mysql = require('mysql2');
 const webpush = require('web-push');
 const schedule = require('node-schedule');
 
-// Dane z Twojego komunikatu
+// TWOJE NAJNOWSZE DANE Z RAILWAY
 const db = mysql.createConnection({
     host: 'monorail.proxy.rlwy.net',
     user: 'root',
-    password: 'JmbTAmgBxEuFCIgVKSdroxlWskrlZaAS',
-    database: 'railway', // Domyślna nazwa bazy na Railway to często 'railway'
-    port: 56355
+    password: 'eegpVuPMZtVrcNGznniDNMBxthwBdofD',
+    database: 'railway', 
+    port: 43398
 });
 
 const publicVapidKey = 'BHHfQ1DF-oznP52NNPCdqXLEnmm5U1i39LK_lhh6uBA29g1C9pPIDBDIxQ9jGv-gX8LDV_YHYNklGIfefS2I_Gw';
@@ -16,7 +16,7 @@ const privateVapidKey = 'XZwlfDYyEruz8fNbEGKeItfh1R3Xz_CI7-FVd5xIDuQ';
 
 webpush.setVapidDetails('mailto:test@test.com', publicVapidKey, privateVapidKey);
 
-console.log('Serwer uruchomiony, czekam na zadania...');
+console.log('Serwer powiadomień wystartował na nowych danych Railway...');
 
 schedule.scheduleJob('* * * * *', function() {
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -26,27 +26,27 @@ schedule.scheduleJob('* * * * *', function() {
         [now],
         (err, results) => {
             if (err) {
-                console.error('Błąd bazy:', err);
+                console.error('Błąd bazy danych Railway:', err);
                 return;
             }
 
-            results.forEach(row => {
-                try {
-                    const sub = JSON.parse(row.subscription_json);
-                    const payload = JSON.stringify({
-                        title: 'Przypomnienie!',
-                        body: row.message_text
-                    });
+            if (results.length > 0) {
+                console.log(`Znaleziono ${results.length} powiadomień do wysłania.`);
+            }
 
-                    webpush.sendNotification(sub, payload)
-                        .then(() => {
-                            db.query('UPDATE notifications SET is_sent = 1 WHERE id = ?', [row.id]);
-                            console.log('Wysłano powiadomienie:', row.message_text);
-                        })
-                        .catch(err => console.error('Błąd Web Push:', err));
-                } catch (e) {
-                    console.error('Błąd parsowania JSON subskrypcji');
-                }
+            results.forEach(row => {
+                const sub = JSON.parse(row.subscription_json);
+                const payload = JSON.stringify({
+                    title: 'Moje ING - Przypomnienie',
+                    body: row.message_text
+                });
+
+                webpush.sendNotification(sub, payload)
+                    .then(() => {
+                        db.query('UPDATE notifications SET is_sent = 1 WHERE id = ?', [row.id]);
+                        console.log('Powiadomienie wysłane pomyślnie!');
+                    })
+                    .catch(err => console.error('Błąd wysyłki Push:', err));
             });
         }
     );
